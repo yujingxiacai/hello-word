@@ -1,0 +1,49 @@
+import tensorflow as tf
+import numpy as np
+
+
+
+def add_layer(inputs, in_size, out_size, activation_function=None):#传入值，in=input，默认激励函数，这里默认的是relu
+    Weights = tf.Variable(tf.random_normal([in_size, out_size]))#尽量随机变量，in_size行，out_size列的矩阵
+    biases = tf.Variable(tf.zeros([1, out_size]) + 0.1)#类似列表的变量，维度是1（1行），out_size是列。机器学习中中一般不以0开始，所以+0.1
+    Wx_plus_b = tf.matmul(inputs, Weights) + biases#预测的值，还未被激活的值就存在这里
+    if activation_function is None:
+        outputs = Wx_plus_b#没有激励函数，证明就是线性关系，直接就是现状输出。
+    else:
+        outputs = activation_function(Wx_plus_b)#不为空，就会放入激励函数中进行优化处理
+    return outputs
+
+
+#建立数据
+x_data = np.linspace(-1,1,300, dtype=np.float32)[:, np.newaxis]#x_data只有一个元素，输入层，就是一个神经元，
+noise = np.random.normal(0, 0.05, x_data.shape).astype(np.float32)#噪声生成，更加贴切显示，更真实
+y_data = np.square(x_data) - 0.5 + noise#同样的道理，输出层也是一个属性，所以也就只有一个神经元，
+#
+xs = tf.placeholder(tf.float32, [None, 1])
+ys = tf.placeholder(tf.float32, [None, 1])
+
+#
+l1 = add_layer(xs, 1, 10, activation_function=tf.nn.relu)#隐藏层假设有10层，就是有10个神经元。xs就是一个参数输入，所以是1，后面10是输出的量，
+#10层，所以有10个输出结果
+
+prediction = add_layer(l1, 10, 1, activation_function=None)#输出层，同样的道理解释10和1，假设没有函数，就是硬性函数
+
+#上面一个神经网路基本建立完了
+loss = tf.reduce_mean(tf.reduce_sum(tf.square(ys - prediction),
+                     reduction_indices=[1]))#求学习中的误差
+#
+train_step = tf.train.GradientDescentOptimizer(0.1).minimize(loss)#选择训练过程， 0.1是学习效率。minimize（losse）是一个学习目的，
+#这里学习目的就是减少误差
+
+#开关
+init = tf.global_variables_initializer()  # 初始所有变量
+sess = tf.Session()#调用并命名Session().会话控制函数。
+sess.run(init)#从初始化开始启动神经网络，预备开关动作
+
+#具体训练过程
+for i in range(1000):
+    # training
+    sess.run(train_step, feed_dict={xs: x_data, ys: y_data})
+    if i % 50 == 0:
+        # to see the step improvement
+        print(sess.run(loss, feed_dict={xs: x_data, ys: y_data}))
